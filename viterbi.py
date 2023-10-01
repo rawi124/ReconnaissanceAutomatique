@@ -28,14 +28,14 @@ def viterbi(observation, proba_init, transition, emission):
     proba[:, 0] = proba_init * emission[:, observation[0]]
 
     # Récursion : calcul des probabilites maximale a chaqye etape
-    for t in range(1, len_o):
+    for ite in range(1, len_o):
         for j in range(len_init):
             temp = np.zeros(len_init)
             for i in range(len_init):
-                temp[i] = proba[i, t - 1] * transition[i, j] * \
-                    emission[j, observation[t]]
-            proba[j, t] = np.max(temp)
-            chemin[j, t] = np.argmax(temp)
+                temp[i] = proba[i, ite - 1] * transition[i, j] * \
+                    emission[j, observation[ite]]
+            proba[j, ite] = np.max(temp)
+            chemin[j, ite] = np.argmax(temp)
 
     # Terminaison
     best_prob = np.max(proba[:, -1])
@@ -43,11 +43,11 @@ def viterbi(observation, proba_init, transition, emission):
 
     # Backtracking
     # va jusqu a T-2 car T-1 est le dernier etat, c est evident d y arriver
-    for t in range(len_o - 2, -1, -1):
+    for i in range(len_o - 2, -1, -1):
         # revient en arriere dans le temps en suivant le chemin
         # cela nous indique comment le modèle estime que nous sommes passés
         # de l'état best_path[-1] à l'état suivant à l'instant t + 1.
-        best_path.append(chemin[best_path[-1], t + 1])
+        best_path.append(chemin[best_path[-1], i + 1])
 
     best_path.reverse()
     print(best_prob)

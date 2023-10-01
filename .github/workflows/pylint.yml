@@ -14,10 +14,11 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
+    - name: Install numpy and other dependencies
       run: |
         python -m pip install --upgrade pip
         pip install pylint
+        pip install numpy
     - name: Analysing the code with pylint
       run: |
         pylint $(git ls-files '*.py')

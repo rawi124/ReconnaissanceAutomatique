@@ -54,8 +54,7 @@ def fenetrage(audio_data, pas):
         fenetres.append(audio_data[i:i+pas])
         i += pas
     fenetres.append(audio_data[i:])
-    return fenetres
-    
+    return fenetres 
 
 def etiquettage(zcr_s):
     """

@@ -4,7 +4,10 @@ dans un premier temps on va effectuer une parametrisation
 qui consiste a transformer un signal audio brut en une autre representation
 plus significative
 """
+import sys
 import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import norm
 
 
 def ouverture_fichier_audio(fichier):
@@ -30,19 +33,22 @@ def calcul_zcr(audio_data):
 
 def zcr_tous_fichiers(chemin, pas):
     """
-    calcule la zcr pour chaque fichier dans le repertoire en parametre
+    calcule la zcr pour chaque fenetre selon un certain pas
+    pour chaque fichier dans le repertoire en parametre
+    retourne une liste de liste de taux
     """
-    fenetres = {}
+    fenetres = []
     lettres = "0123456789abcdefghijklmnopqrsuvwxyz"
     for lettre in lettres:
         fichier = chemin + "/" + lettre + ".raw"
         audio_data = ouverture_fichier_audio(fichier)
         fenetre = fenetrage(audio_data, pas)
         zcr_fenetre = []
-        for fen in fenetre :
+        for fen in fenetre:
             zcr_fenetre.append(round(calcul_zcr(fen), 2))
-        fenetres[fichier] = zcr_fenetre
+        fenetres.append(zcr_fenetre)
     return fenetres
+
 
 def fenetrage(audio_data, pas):
     """
@@ -50,44 +56,48 @@ def fenetrage(audio_data, pas):
     """
     fenetres = []
     i = 0
-    while i+pas < len(audio_data) :
+    while i+pas < len(audio_data):
         fenetres.append(audio_data[i:i+pas])
         i += pas
     fenetres.append(audio_data[i:])
-    return fenetres 
+    return fenetres
+
 
 def moyenne_ecarttype(taux_fenetre):
     """
-    calcule la moyenne et l ecart type 
+    calcule la moyenne et l ecart type
     """
-    return np.mean(taux_fentre), np.std(taux_fenetre)
+    return np.mean(taux_fenetre), np.std(taux_fenetre)
 
-def moyenne_ecarttype_tous(zcr_tous_fichiers):
+
+def moyenne_ecarttype_tous(zcr_fichiers):
     """
     calcule la moyenne et l ecart type pour chaque fichier
     """
     gmm = []
-    for el in zcr_tous_fichiers.values():
-        gmm.append(moyenne_ecarttype(el))
+    for zcr_fichier in zcr_fichiers:
+        gmm.append(moyenne_ecarttype(zcr_fichier))
     return gmm
 
-def etiquettage(zcr_s):
+def affichage_gaussienne(moyenne, ecart_type, taux):
     """
-    effectue ettiquetage en gardant que les taux 
-    de passage par zero qui ont plus de deux occurences
+    affiche la gaussienne et l histogramme des taux
     """
-    occurences = {}
-    for occ in zcr_s:
-        if occ in occurences:
-            occurences[occ] += 1
-        else:
-            occurences[occ] = 1
-    return {element: count for element, count in occurences.items() if count > 1}
-
+    distribution = np.linspace(min(taux) - 0.2, max(taux) + 0.2, 1000)
+    gaussian = norm.pdf(distribution, moyenne, ecart_type)
+    plt.hist(taux, bins=10, density=True, alpha=0.5, label='Données de taux')
+    plt.plot(distribution, gaussian, 'r', label='Gaussienne')
+    plt.xlabel('Taux')
+    plt.ylabel('Densité de Probabilité')
+    plt.title('Données de Taux et Distribution Gaussienne pour le fichier 0')
+    #img_fich = "data/img_fich0.png"
+    #plt.savefig(img_fich)
+    plt.show()
 
 if __name__ == "__main__":
     audio_da = ouverture_fichier_audio("data/0.raw")
     ZCR = calcul_zcr(audio_da)
-    #print(zcr_tous_fichiers("data", 551))
-    print(moyenne_ecarttype_tous)
-    #print(etiquettage(ZCRS))
+    ZCRS = zcr_tous_fichiers("data", int(sys.argv[1]))
+    moy, ecart = moyenne_ecarttype(ZCRS[int(sys.argv[2])])
+    affichage_gaussienne(moy, ecart, ZCRS[int(sys.argv[2])])
+    # print(etiquettage(ZCRS))

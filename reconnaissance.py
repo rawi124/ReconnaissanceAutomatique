@@ -11,7 +11,7 @@ def ouverture_fichier_audio(fichier):
     """
     effectue l'ouverture d'un fichier audio et extrait son contenu
     """
-    audio_data = np.fromfile(fichier)
+    audio_data = np.fromfile(fichier, dtype=np.int16)
     return audio_data
 
 
@@ -23,25 +23,39 @@ def calcul_zcr(audio_data):
     """
     zcr_audio = 0
     for i in range(1, len(audio_data)):
-        # print(audio_data[i])
-        if np.float64(audio_data[i-1]) * np.float64(audio_data[i]) < 0:
+        if audio_data[i-1] * audio_data[i] < 0:
             zcr_audio += 1
     return zcr_audio/len(audio_data)
 
 
-def zcr_tous_fichiers(chemin):
+def zcr_tous_fichiers(chemin, pas):
     """
     calcule la zcr pour chaque fichier dans le repertoire en parametre
     """
-    zcr_s = []
+    fenetres = {}
     lettres = "0123456789abcdefghijklmnopqrsuvwxyz"
     for lettre in lettres:
         fichier = chemin + "/" + lettre + ".raw"
         audio_data = ouverture_fichier_audio(fichier)
-        zcr_s.append(calcul_zcr(audio_data))
-    zcr_s_arrondies = [round(zcr, 1) for zcr in zcr_s]
-    return zcr_s_arrondies
+        fenetre = fenetrage(audio_data, pas)
+        zcr_fenetre = []
+        for fen in fenetre :
+            zcr_fenetre.append(round(calcul_zcr(fen), 2))
+        fenetres[fichier] = zcr_fenetre
+    return fenetres
 
+def fenetrage(audio_data, pas):
+    """
+    effectue le fenetrage de l audio selon un certain pas
+    """
+    fenetres = []
+    i = 0
+    while i+pas < len(audio_data) :
+        fenetres.append(audio_data[i:i+pas])
+        i += pas
+    fenetres.append(audio_data[i:])
+    return fenetres
+    
 
 def etiquettage(zcr_s):
     """
@@ -60,5 +74,5 @@ def etiquettage(zcr_s):
 if __name__ == "__main__":
     audio_da = ouverture_fichier_audio("data/0.raw")
     ZCR = calcul_zcr(audio_da)
-    ZCRS = zcr_tous_fichiers("data")
-    print(etiquettage(ZCRS))
+    print(zcr_tous_fichiers("data", 551))
+    #print(etiquettage(ZCRS))

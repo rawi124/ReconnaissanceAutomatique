@@ -56,6 +56,21 @@ def fenetrage(audio_data, pas):
     fenetres.append(audio_data[i:])
     return fenetres 
 
+def moyenne_ecarttype(taux_fenetre):
+    """
+    calcule la moyenne et l ecart type 
+    """
+    return np.mean(taux_fentre), np.std(taux_fenetre)
+
+def moyenne_ecarttype_tous(zcr_tous_fichiers):
+    """
+    calcule la moyenne et l ecart type pour chaque fichier
+    """
+    gmm = []
+    for el in zcr_tous_fichiers.values():
+        gmm.append(moyenne_ecarttype(el))
+    return gmm
+
 def etiquettage(zcr_s):
     """
     effectue ettiquetage en gardant que les taux 
@@ -73,5 +88,6 @@ def etiquettage(zcr_s):
 if __name__ == "__main__":
     audio_da = ouverture_fichier_audio("data/0.raw")
     ZCR = calcul_zcr(audio_da)
-    print(zcr_tous_fichiers("data", 551))
+    #print(zcr_tous_fichiers("data", 551))
+    print(moyenne_ecarttype_tous)
     #print(etiquettage(ZCRS))

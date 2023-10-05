@@ -8,6 +8,7 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import norm
+import math
 
 
 def ouverture_fichier_audio(fichier):
@@ -79,6 +80,20 @@ def moyenne_ecarttype_tous(zcr_fichiers):
         gmm.append(moyenne_ecarttype(zcr_fichier))
     return gmm
 
+def gaussienne(moyenne, ecart_type, taux):
+    """
+    dessine une gaussienne en n'utilisant pas spicy
+    """
+    densite = []
+    print(taux)
+    distribution = np.linspace(min(taux) - 0.2, max(taux) + 0.2, 1000)
+    #for tau in taux :
+    densite = list(1/(ecart_type * (2*math.pi )**0.5)*math.exp(-(taux - moyenne) **2 / 2 *(ecart_type**2)))
+    print(densite)
+    #plt.hist(taux, bins=10, density=True, alpha=0.5, label='Données de taux')
+    #plt.plot(distribution, densite, 'r', label='Gaussienne')
+    #plt.show()
+
 def affichage_gaussienne(moyenne, ecart_type, taux):
     """
     affiche la gaussienne et l histogramme des taux
@@ -99,5 +114,5 @@ if __name__ == "__main__":
     ZCR = calcul_zcr(audio_da)
     ZCRS = zcr_tous_fichiers("data", int(sys.argv[1]))
     moy, ecart = moyenne_ecarttype(ZCRS[int(sys.argv[2])])
-    affichage_gaussienne(moy, ecart, ZCRS[int(sys.argv[2])])
+    gaussienne(moy, ecart, ZCRS[int(sys.argv[2])])
     # print(etiquettage(ZCRS))

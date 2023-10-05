@@ -5,10 +5,9 @@ qui consiste a transformer un signal audio brut en une autre representation
 plus significative
 """
 import sys
+import math
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.stats import norm
-import math
 
 
 def ouverture_fichier_audio(fichier):
@@ -46,7 +45,7 @@ def zcr_tous_fichiers(chemin, pas):
         fenetre = fenetrage(audio_data, pas)
         zcr_fenetre = []
         for fen in fenetre:
-            zcr_fenetre.append(round(calcul_zcr(fen), 2))
+            zcr_fenetre.append(round(calcul_zcr(fen), 1))
         fenetres.append(zcr_fenetre)
     return fenetres
 
@@ -80,34 +79,21 @@ def moyenne_ecarttype_tous(zcr_fichiers):
         gmm.append(moyenne_ecarttype(zcr_fichier))
     return gmm
 
+
 def gaussienne(moyenne, ecart_type, taux):
     """
     dessine une gaussienne en n'utilisant pas spicy
     """
     densite = []
-    print(taux)
-    distribution = np.linspace(min(taux) - 0.2, max(taux) + 0.2, 1000)
-    #for tau in taux :
-    densite = list(1/(ecart_type * (2*math.pi )**0.5)*math.exp(-(taux - moyenne) **2 / 2 *(ecart_type**2)))
-    print(densite)
-    #plt.hist(taux, bins=10, density=True, alpha=0.5, label='Données de taux')
-    #plt.plot(distribution, densite, 'r', label='Gaussienne')
-    #plt.show()
-
-def affichage_gaussienne(moyenne, ecart_type, taux):
-    """
-    affiche la gaussienne et l histogramme des taux
-    """
-    distribution = np.linspace(min(taux) - 0.2, max(taux) + 0.2, 1000)
-    gaussian = norm.pdf(distribution, moyenne, ecart_type)
+    distribution = np.linspace(min(taux) - 3 * ecart_type,
+                    max(taux) + 3 * ecart_type, 1000)
+    for tau in distribution:
+        densite.append((1 / (ecart_type * math.sqrt(2 * math.pi)))
+                       * math.exp(-((tau - moyenne)**2) / (2 * ecart_type**2)))
     plt.hist(taux, bins=10, density=True, alpha=0.5, label='Données de taux')
-    plt.plot(distribution, gaussian, 'r', label='Gaussienne')
-    plt.xlabel('Taux')
-    plt.ylabel('Densité de Probabilité')
-    plt.title('Données de Taux et Distribution Gaussienne pour le fichier 0')
-    #img_fich = "data/img_fich0.png"
-    #plt.savefig(img_fich)
+    plt.plot(distribution, densite, 'r', label='Gaussienne')
     plt.show()
+
 
 if __name__ == "__main__":
     audio_da = ouverture_fichier_audio("data/0.raw")
@@ -115,4 +101,3 @@ if __name__ == "__main__":
     ZCRS = zcr_tous_fichiers("data", int(sys.argv[1]))
     moy, ecart = moyenne_ecarttype(ZCRS[int(sys.argv[2])])
     gaussienne(moy, ecart, ZCRS[int(sys.argv[2])])
-    # print(etiquettage(ZCRS))

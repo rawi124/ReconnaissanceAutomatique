@@ -49,6 +49,15 @@ def zcr_tous_fichiers(chemin, pas):
         fenetres.append(zcr_fenetre)
     return fenetres
 
+def zcr_fenetrage_fichier(audio_data, pas):
+    """
+    calcule la zcr pour un audio fenetre
+    """
+    fenetres = fenetrage(audio_data, pas)
+    zcr_fenetre = []
+    for fen in fenetres:
+        zcr_fenetre.append(round(calcul_zcr(fen), 1))
+    return zcr_fenetre
 
 def fenetrage(audio_data, pas):
     """
@@ -94,10 +103,33 @@ def gaussienne(moyenne, ecart_type, taux):
     plt.plot(distribution, densite, 'r', label='Gaussienne')
     plt.show()
 
+def gaussiennes_multiple(moyennes, ecarts_types, poids, taux):
+    """
+    Dessine plusieurs gaussiennes en utilisant les paramètres fournis.
+    """
+    plt.hist(taux, bins=20, density=True, alpha=0.5, label='Données de taux', color='blue')
+    for moyenne, ecart_type, poids_component in zip(moyennes, ecarts_types, poids):
+        distribution = np.linspace(min(taux) - 3 * ecart_type, max(taux) + 3 * ecart_type, 1000)
+        densite = (1 / (ecart_type * math.sqrt(2 * math.pi))) * np.exp(-((distribution - moyenne)**2) / (2 * ecart_type**2))
+        #densite_totale += dentiste * poids_component
+        plt.plot(distribution, densite, label=f'Gaussienne {moyenne:.2f}', linestyle='--')
+    
+    plt.xlabel('Taux')
+    plt.ylabel('Densité de Probabilité')
+    plt.title('Gaussiennes Multiples')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
 
 if __name__ == "__main__":
     audio_da = ouverture_fichier_audio("data/0.raw")
-    ZCR = calcul_zcr(audio_da)
-    ZCRS = zcr_tous_fichiers("data", int(sys.argv[1]))
-    moy, ecart = moyenne_ecarttype(ZCRS[int(sys.argv[2])])
-    gaussienne(moy, ecart, ZCRS[int(sys.argv[2])])
+    fenetres = zcr_fenetrage_fichier(audio_da, int(sys.argv[1]))
+    print(fenetres)
+    ZCRSS = fenetres[0:len(fenetres)//2]
+    ZCRSSS = fenetres[len(fenetres)//2:]
+    moy, ecart = moyenne_ecarttype(ZCRSS)
+    moyy, ecartt = moyenne_ecarttype(ZCRSSS)
+    m = [moy , moyy] 
+    e =[ ecart , ecartt]
+    t = ZCRSS + ZCRSSS
+    gaussiennes_multiple(m, e, [0.5, 0.5], t)

@@ -8,7 +8,7 @@ import sys
 import math
 import numpy as np
 import matplotlib.pyplot as plt
-
+import random
 
 def ouverture_fichier_audio(fichier):
     """
@@ -103,19 +103,18 @@ def gaussienne(moyenne, ecart_type, taux):
     plt.plot(distribution, densite, 'r', label='Gaussienne')
     plt.show()
 
-def expection_maximisation(taux, M, moy, ecart ):
+def expection_maximisation(M, moy, ecart ):
     """
     calcule la vraisemblance
     """
     #partie initialisation
     mean_hasard = []
-    mean_hasard.append(moy-ecart)
-    mean_hasard.append(moy+ecart)
-    for i in range(2, M-2):
-        mean_hasard.append(moy-ecart*i)
-    variance = 
+    intervalle = [moy-ecart, moy+ecart]
+    for i in range(M):
+        mean_hasard.append(random.uniform(moy-ecart, moy+ecart))
     #partie expectation
     #partie maximisation
+    return mean_hasard
     
 
 def gaussiennes_multiple(moyennes, ecarts_types, poids, taux):
@@ -139,7 +138,7 @@ def gaussiennes_multiple(moyennes, ecarts_types, poids, taux):
 if __name__ == "__main__":
     audio_da = ouverture_fichier_audio("data/0.raw")
     fenetres = zcr_fenetrage_fichier(audio_da, int(sys.argv[1]))
-    print(fenetres)
+    #print(fenetres)
     ZCRSS = fenetres[0:len(fenetres)//2]
     ZCRSSS = fenetres[len(fenetres)//2:]
     moy, ecart = moyenne_ecarttype(ZCRSS)
@@ -147,4 +146,5 @@ if __name__ == "__main__":
     m = [moy , moyy] 
     e =[ ecart , ecartt]
     t = ZCRSS + ZCRSSS
-    gaussiennes_multiple(m, e, [0.5, 0.5], t)
+    print(expection_maximisation(3, moy, ecart))
+    #gaussiennes_multiple(m, e, [0.5, 0.5], t)

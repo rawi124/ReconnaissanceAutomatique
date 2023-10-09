@@ -6,9 +6,10 @@ plus significative
 """
 import sys
 import math
+import random
 import numpy as np
 import matplotlib.pyplot as plt
-import random
+
 
 def ouverture_fichier_audio(fichier):
     """
@@ -49,6 +50,7 @@ def zcr_tous_fichiers(chemin, pas):
         fenetres.append(zcr_fenetre)
     return fenetres
 
+
 def zcr_fenetrage_fichier(audio_data, pas):
     """
     calcule la zcr pour un audio fenetre
@@ -58,6 +60,7 @@ def zcr_fenetrage_fichier(audio_data, pas):
     for fen in fenetres:
         zcr_fenetre.append(round(calcul_zcr(fen), 1))
     return zcr_fenetre
+
 
 def fenetrage(audio_data, pas):
     """
@@ -89,62 +92,63 @@ def moyenne_ecarttype_tous(zcr_fichiers):
     return gmm
 
 
-def gaussienne(moyenne, ecart_type, taux):
+def gaussienne_plot(moyenne, ecart_type, taux):
     """
     dessine une gaussienne en n'utilisant pas spicy
     """
-    densite = []
+    densite = gaussienne(moyenne, ecart_type, taux)
     distribution = np.linspace(min(taux) - 3 * ecart_type,
-                    max(taux) + 3 * ecart_type, 1000)
-    for tau in distribution:
-        densite.append((1 / (ecart_type * math.sqrt(2 * math.pi)))
-                       * math.exp(-((tau - moyenne)**2) / (2 * ecart_type**2)))
+                               max(taux) + 3 * ecart_type, 1000)
     plt.hist(taux, bins=10, density=True, alpha=0.5, label='Données de taux')
     plt.plot(distribution, densite, 'r', label='Gaussienne')
     plt.show()
 
-def expection_maximisation(M, moy, ecart ):
+
+def gaussienne(moyenne, ecart_type, taux):
+    """
+    calcule la gaussienne
+    """
+    densite = []
+    distribution = np.linspace(min(taux) - 3 * ecart_type,
+                               max(taux) + 3 * ecart_type, 1000)
+    for tau in distribution:
+        densite.append((1 / (ecart_type * math.sqrt(2 * math.pi)))
+                       * math.exp(-((tau - moyenne)**2) / (2 * ecart_type**2)))
+    return densite
+
+
+def expection_maximisation(taux, nb_gauss, moy, ecart):
     """
     calcule la vraisemblance
     """
-    #partie initialisation
-    mean_hasard = []
-    intervalle = [moy-ecart, moy+ecart]
-    for i in range(M):
+    # partie initialisation
+    mean_hasard, ecart_hasard = [], []
+    poids = 1 / nb_gauss
+    for i in range(nb_gauss):
         mean_hasard.append(random.uniform(moy-ecart, moy+ecart))
-    #partie expectation
-    #partie maximisation
-    return mean_hasard
-    
+        ecart_hasard.append(random.uniform(ecart*2, ecart*3))
+    # partie expectation
+    len_taux = len(taux)
+    probabilites = np.zeros((len_taux, nb_gauss))
+    for j in range(nb_gauss):
+        probabilites[:, j] = poids * 1 / ((np.sqrt(2 * np.pi)) * ecart_hasard[j]) * \
+            np.exp(-0.5*((taux - mean_hasard[j]) / ecart_hasard[j]) ** 2)
+    probabilites = probabilites / np.sum(probabilites, axis=1, keepdims=True)
+    # partie maximisation
+    new_poids = []
+    for i in range(nb_gauss):
+        mean_hasard[i] = np.sum(probabilites[:, i] *
+                                taux) / np.sum(probabilites[:, i])
+        ecart_hasard[i] = np.sqrt(np.sum(
+            probabilites[:, i] * (taux - mean_hasard[i]) ** 2) / np.sum(probabilites[:, i]))
+        new_poids.append(np.mean(probabilites[:, i]))
+    print("moyennes : ", mean_hasard, " ecart_hasard : ",
+          ecart_hasard, " new_poids : ", new_poids)
+    return mean_hasard, ecart_hasard, new_poids
 
-def gaussiennes_multiple(moyennes, ecarts_types, poids, taux):
-    """
-    Dessine plusieurs gaussiennes en utilisant les paramètres fournis.
-    """
-    plt.hist(taux, bins=20, density=True, alpha=0.5, label='Données de taux', color='blue')
-    for moyenne, ecart_type, poids_component in zip(moyennes, ecarts_types, poids):
-        distribution = np.linspace(min(taux) - 3 * ecart_type, max(taux) + 3 * ecart_type, 1000)
-        densite = (1 / (ecart_type * math.sqrt(2 * math.pi))) * np.exp(-((distribution - moyenne)**2) / (2 * ecart_type**2))
-        #densite_totale += dentiste * poids_component
-        plt.plot(distribution, densite, label=f'Gaussienne {moyenne:.2f}', linestyle='--')
-    
-    plt.xlabel('Taux')
-    plt.ylabel('Densité de Probabilité')
-    plt.title('Gaussiennes Multiples')
-    plt.legend()
-    plt.grid(True)
-    plt.show()
 
 if __name__ == "__main__":
     audio_da = ouverture_fichier_audio("data/0.raw")
-    fenetres = zcr_fenetrage_fichier(audio_da, int(sys.argv[1]))
-    #print(fenetres)
-    ZCRSS = fenetres[0:len(fenetres)//2]
-    ZCRSSS = fenetres[len(fenetres)//2:]
-    moy, ecart = moyenne_ecarttype(ZCRSS)
-    moyy, ecartt = moyenne_ecarttype(ZCRSSS)
-    m = [moy , moyy] 
-    e =[ ecart , ecartt]
-    t = ZCRSS + ZCRSSS
-    print(expection_maximisation(3, moy, ecart))
-    #gaussiennes_multiple(m, e, [0.5, 0.5], t)
+    fenet = zcr_fenetrage_fichier(audio_da, int(sys.argv[1]))
+    mo, ecar = moyenne_ecarttype(fenet)
+    expection_maximisation(fenet, 3, mo, ecar)

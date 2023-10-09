@@ -103,6 +103,21 @@ def gaussienne(moyenne, ecart_type, taux):
     plt.plot(distribution, densite, 'r', label='Gaussienne')
     plt.show()
 
+def expection_maximisation(taux, M, moy, ecart ):
+    """
+    calcule la vraisemblance
+    """
+    #partie initialisation
+    mean_hasard = []
+    mean_hasard.append(moy-ecart)
+    mean_hasard.append(moy+ecart)
+    for i in range(2, M-2):
+        mean_hasard.append(moy-ecart*i)
+    variance = 
+    #partie expectation
+    #partie maximisation
+    
+
 def gaussiennes_multiple(moyennes, ecarts_types, poids, taux):
     """
     Dessine plusieurs gaussiennes en utilisant les paramètres fournis.

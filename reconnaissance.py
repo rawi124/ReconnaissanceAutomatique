@@ -125,8 +125,8 @@ def expection_maximisation(taux, nb_gauss, moy, ecart):
     mean_hasard, ecart_hasard = [], []
     poids = 1 / nb_gauss
     for i in range(nb_gauss):
-        mean_hasard.append(random.uniform(moy-ecart, moy+ecart))
-        ecart_hasard.append(random.uniform(ecart*2, ecart*3))
+        mean_hasard.append(random.uniform(moy*0.9, moy*1.1))
+        ecart_hasard.append(random.uniform(ecart*0.9, ecart*1.1))
     # partie expectation
     len_taux = len(taux)
     probabilites = np.zeros((len_taux, nb_gauss))
@@ -142,13 +142,54 @@ def expection_maximisation(taux, nb_gauss, moy, ecart):
         ecart_hasard[i] = np.sqrt(np.sum(
             probabilites[:, i] * (taux - mean_hasard[i]) ** 2) / np.sum(probabilites[:, i]))
         new_poids.append(np.mean(probabilites[:, i]))
-    print("moyennes : ", mean_hasard, " ecart_hasard : ",
-          ecart_hasard, " new_poids : ", new_poids)
     return mean_hasard, ecart_hasard, new_poids
 
+def plot_gaussians(data, moy_em, et_em):
+    """
+    dessine un melange de gaussienne
+    """
+    moy_em = np.array(moy_em)
+    et_em = np.array(et_em)
+    distribution = np.linspace(min(moy_em - 3 * et_em), max(moy_em + 3 * et_em), 1000)
+    for j, moy in enumerate(moy_em):
+        gaussian = (1 / (np.sqrt(2 * np.pi) * et_em[j])) *\
+                np.exp(-0.5 * ((distribution - moy) / et_em[j]) ** 2)
+        plt.plot(distribution, gaussian, label=f'Composante {j+1}')
+
+    plt.hist(data, bins=10, density=True, alpha=0.5, label='Données')
+    plt.xlabel('Valeur')
+    plt.ylabel('Densité de probabilité')
+    plt.legend()
+    plt.show()
+
+def log_likelihood(zcr_taux, moy, et, poids):
+    """
+    calcule le taux de vraisemblance pour chaque fichier 
+    """
+    log_ll_total = 0
+    for x in zcr_taux:
+        ll_x = 0
+        for j in range(len(moy)):
+            prob = (1 / (np.sqrt(2 * np.pi) * et[j])) * np.exp(-0.5 * ((x - moy[j]) / et[j]) ** 2)
+            ll_x += poids[j] * prob
+        log_ll_total += np.log(ll_x)
+    return log_ll_total
+def matrice_ll(chemin, pas, nb_gauss):
+    """
+    renvoie une matrice de tous les log_lik
+    """
+    zcr_tous = zcr_tous_fichiers(chemin, pas)
+    matrice = []
+    for el in zcr_tous :
+        m, e = moyenne_ecarttype(el)
+        m, e, p = expection_maximisation(el, nb_gauss, m, e)
+        matrice.append(log_likelihood(el,m, e, p))
+    return matrice
 
 if __name__ == "__main__":
-    audio_da = ouverture_fichier_audio("data/0.raw")
-    fenet = zcr_fenetrage_fichier(audio_da, int(sys.argv[1]))
-    mo, ecar = moyenne_ecarttype(fenet)
-    expection_maximisation(fenet, 3, mo, ecar)
+    AUDIO = ouverture_fichier_audio("data/c.raw")
+    FENET = zcr_fenetrage_fichier(AUDIO, int(sys.argv[1]))
+    MO, ECAR = moyenne_ecarttype(FENET)
+    MOH, ECH, POIDSH = expection_maximisation(FENET, 2, MO, ECAR)
+    #plot_gaussians(FENET, MOH, ECH)
+    print(matrice_ll("data", int(sys.argv[1]), 2))

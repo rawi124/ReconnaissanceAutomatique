@@ -117,32 +117,46 @@ def gaussienne(moyenne, ecart_type, taux):
     return densite
 
 
-def expection_maximisation(taux, nb_gauss, moy, ecart):
+def expectation_maximisation(taux, nb_gauss, moy, ecart, seuil):
     """
-    calcule la vraisemblance
+    Calcule la vraisemblance en utilisant l'algorithme Expectation-Maximization.
     """
-    # partie initialisation
-    mean_hasard, ecart_hasard = [], []
-    poids = 1 / nb_gauss
-    for i in range(nb_gauss):
-        mean_hasard.append(random.uniform(moy*0.9, moy*1.1))
-        ecart_hasard.append(random.uniform(ecart*0.9, ecart*1.1))
-    # partie expectation
-    len_taux = len(taux)
-    probabilites = np.zeros((len_taux, nb_gauss))
-    for j in range(nb_gauss):
-        probabilites[:, j] = poids * 1 / ((np.sqrt(2 * np.pi)) * ecart_hasard[j]) * \
-            np.exp(-0.5*((taux - mean_hasard[j]) / ecart_hasard[j]) ** 2)
-    probabilites = probabilites / np.sum(probabilites, axis=1, keepdims=True)
-    # partie maximisation
-    new_poids = []
-    for i in range(nb_gauss):
-        mean_hasard[i] = np.sum(probabilites[:, i] *
-                                taux) / np.sum(probabilites[:, i])
-        ecart_hasard[i] = np.sqrt(np.sum(
-            probabilites[:, i] * (taux - mean_hasard[i]) ** 2) / np.sum(probabilites[:, i]))
-        new_poids.append(np.mean(probabilites[:, i]))
-    return mean_hasard, ecart_hasard, new_poids
+    mean_hasard = [random.uniform(moy * 0.9, moy * 1.1)
+                   for _ in range(nb_gauss)]
+    ecart_hasard = [random.uniform(ecart * 0.9, ecart * 1.1)
+                    for _ in range(nb_gauss)]
+    poids = [1 / nb_gauss] * nb_gauss
+
+    prev_log_likelihood = float('-inf')
+
+    while True:
+        len_taux = len(taux)
+        probabilites = np.zeros((len_taux, nb_gauss))
+
+        for j in range(nb_gauss):
+            probabilites[:, j] = poids[j] * 1 / ((np.sqrt(2 * np.pi)) * ecart_hasard[j]) * \
+                np.exp(-0.5 * ((taux - mean_hasard[j]) / ecart_hasard[j]) ** 2)
+            probabilites = probabilites / \
+                np.sum(probabilites, axis=1, keepdims=True)
+
+        log_likelihood_value = log_likelihood(
+            taux, mean_hasard, ecart_hasard, poids)
+        print(f"Log-likelihood = {log_likelihood_value}")
+
+        if log_likelihood_value - prev_log_likelihood < seuil:
+            print("Convergence atteinte. Arrêt de l'itération.")
+            break
+
+        prev_log_likelihood = log_likelihood_value
+
+        for i in range(nb_gauss):
+            mean_hasard[i] = np.sum(
+                probabilites[:, i] * taux) / np.sum(probabilites[:, i])
+            ecart_hasard[i] = np.sqrt(np.sum(
+                probabilites[:, i] * (taux - mean_hasard[i]) ** 2) / np.sum(probabilites[:, i]))
+            poids[i] = np.mean(probabilites[:, i])
+
+    return mean_hasard, ecart_hasard, poids
 
 def plot_gaussians(data, moy_em, et_em):
     """
@@ -150,10 +164,11 @@ def plot_gaussians(data, moy_em, et_em):
     """
     moy_em = np.array(moy_em)
     et_em = np.array(et_em)
-    distribution = np.linspace(min(moy_em - 3 * et_em), max(moy_em + 3 * et_em), 1000)
+    distribution = np.linspace(
+        min(moy_em - 3 * et_em), max(moy_em + 3 * et_em), 1000)
     for j, moy in enumerate(moy_em):
         gaussian = (1 / (np.sqrt(2 * np.pi) * et_em[j])) *\
-                np.exp(-0.5 * ((distribution - moy) / et_em[j]) ** 2)
+            np.exp(-0.5 * ((distribution - moy) / et_em[j]) ** 2)
         plt.plot(distribution, gaussian, label=f'Composante {j+1}')
 
     plt.hist(data, bins=10, density=True, alpha=0.5, label='Données')
@@ -162,34 +177,39 @@ def plot_gaussians(data, moy_em, et_em):
     plt.legend()
     plt.show()
 
-def log_likelihood(zcr_taux, moy, et, poids):
+
+def log_likelihood(zcr_taux, moyenne, ecart, poids):
     """
-    calcule le taux de vraisemblance pour chaque fichier 
+    Calcule le log-vraisemblance pour un ensemble de données en utilisant un modèle GMM.
     """
     log_ll_total = 0
-    for x in zcr_taux:
+    for tau in zcr_taux:
         ll_x = 0
-        for j in range(len(moy)):
-            prob = (1 / (np.sqrt(2 * np.pi) * et[j])) * np.exp(-0.5 * ((x - moy[j]) / et[j]) ** 2)
+        for j, moyen in enumerate(moyenne):
+            prob = (1 / (np.sqrt(2 * np.pi) *
+                    ecart[j])) * np.exp(-0.5 * ((tau - moyen) / ecart[j]) ** 2)
             ll_x += poids[j] * prob
         log_ll_total += np.log(ll_x)
     return log_ll_total
-def matrice_ll(chemin, pas, nb_gauss):
+
+
+def matrice_ll(chemin, pas, nb_gauss, seuil):
     """
     renvoie une matrice de tous les log_lik
     """
     zcr_tous = zcr_tous_fichiers(chemin, pas)
     matrice = []
-    for el in zcr_tous :
-        m, e = moyenne_ecarttype(el)
-        m, e, p = expection_maximisation(el, nb_gauss, m, e)
-        matrice.append(log_likelihood(el,m, e, p))
+    for tau in zcr_tous:
+        moyenn, ecar = moyenne_ecarttype(tau)
+        moyenn, ecar, poid = expectation_maximisation(tau, nb_gauss, moyenn, ecar, seuil)
+        matrice.append(log_likelihood(tau, moyenn, ecar, poid))
     return matrice
+
 
 if __name__ == "__main__":
     AUDIO = ouverture_fichier_audio("data/c.raw")
     FENET = zcr_fenetrage_fichier(AUDIO, int(sys.argv[1]))
     MO, ECAR = moyenne_ecarttype(FENET)
-    MOH, ECH, POIDSH = expection_maximisation(FENET, 2, MO, ECAR)
-    #plot_gaussians(FENET, MOH, ECH)
-    print(matrice_ll("data", int(sys.argv[1]), 2))
+    # MOH, ECH, POIDSH = expectation_maximisation(FENET, 2, MO, ECAR, 20)
+    # plot_gaussians(FENET, MOH, ECH)
+    print(matrice_ll("data", int(sys.argv[1]), 2, 100))
